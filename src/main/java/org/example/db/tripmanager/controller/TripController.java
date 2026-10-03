@@ -20,10 +20,19 @@ public class TripController {
         this.tripService = tripService;
     }
 
-
+    @GetMapping("/{id}")
+    public TripResponse findById(@PathVariable Long id) {
+        return tripService.findById(id);
+    }
     @GetMapping
     public List<TripResponse> findAll() {
         return tripService.findAll();
+    }
+    @PutMapping("/{id}")
+    public TripResponse update(
+            @PathVariable Long id,
+            @RequestBody TripRequest request) {
+        return tripService.update(id, request);
     }
 
     @PostMapping
