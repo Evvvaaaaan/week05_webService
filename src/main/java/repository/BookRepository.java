@@ -1,7 +1,7 @@
 package repository;
 
 
-import domain.Book;
+import org.example.db.tripmanager.domain.Trip;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -9,8 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface BookRepository {
-    Book save(Book b);
-    List<Book> findAll();
-    Optional<Book> findById();
+    Trip save(Trip b);
+    List<Trip> findAll();
+    Optional<Trip> findById();
 
 }
