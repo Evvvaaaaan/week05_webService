@@ -21,6 +21,7 @@ public class TripService {
     }
 
     public TripResponse create(TripRequest request) {
+        validate(request);
         Trip trip = new Trip(
                 null,
                 request.title(),
@@ -80,6 +81,35 @@ public class TripService {
                 trip.getBudget(),
                 trip.getMemo()
         );
+    }
+    private void validate(TripRequest request) {
+        if (request.title() == null || request.title().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Title is required"
+            );
+        }
+        if(request.budget() == null || request.budget() < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Budget must be zero or greater than zero");
+        }
+        if(request.destination() == null || request.destination().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Destination is required");
+        }
+        if (request.startDate() == null || request.endDate() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Start date is required"
+            );
+        }
+        if(request.endDate().isBefore(request.startDate())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "End date is before start date");
+        }
     }
 }
 
