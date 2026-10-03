@@ -1,6 +1,7 @@
 package org.example.db.tripmanager.controller;
 
 
+import org.apache.coyote.Response;
 import org.example.db.tripmanager.dto.TripRequest;
 import org.example.db.tripmanager.dto.TripResponse;
 import org.example.db.tripmanager.service.TripService;
@@ -34,7 +35,11 @@ public class TripController {
             @RequestBody TripRequest request) {
         return tripService.update(id, request);
     }
-
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        tripService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
     @PostMapping
     public ResponseEntity<TripResponse> create (
         @RequestBody TripRequest request) {

@@ -41,6 +41,11 @@ public class TripService {
                 .map(this::toResponse)
                 .toList();
     }
+    public void delete(Long id) {
+        findTrip(id);
+        repository.deleteById(id);
+    }
+
     public TripResponse update(Long id, TripRequest request) {
         Trip trip = findTrip(id);
         trip.setTitle(request.title());
