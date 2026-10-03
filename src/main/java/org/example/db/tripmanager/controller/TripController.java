@@ -26,9 +26,12 @@ public class TripController {
         return tripService.findById(id);
     }
     @GetMapping
-    public List<TripResponse> findAll() {
-        return tripService.findAll();
+    public List<TripResponse> findAll(
+            @RequestParam(required = false) String destination) {
+
+        return tripService.findAll(destination);
     }
+
     @PutMapping("/{id}")
     public TripResponse update(
             @PathVariable Long id,

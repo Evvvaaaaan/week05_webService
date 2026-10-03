@@ -36,9 +36,10 @@ public class TripService {
         return toResponse(savedTrip);
     }
 
-    public List<TripResponse> findAll() {
+    public List<TripResponse> findAll(String destination) {
         return repository.findAll()
                 .stream()
+                .filter(trip -> destination == null || destination.equals(trip.getDestination()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -49,6 +50,7 @@ public class TripService {
 
     public TripResponse update(Long id, TripRequest request) {
         Trip trip = findTrip(id);
+        validate(request);
         trip.setTitle(request.title());
         trip.setDestination(request.destination());
         trip.setStartDate(request.startDate());
