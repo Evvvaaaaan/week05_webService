@@ -6,7 +6,10 @@
 
 - 개인 저장소: https://github.com/Evvvaaaaan/week05_webService
 - Organization 저장소: https://github.com/2026-2-WebService/assign05-c01-22300404
-- 배포 URL: Render 배포 후 추가 예정
+- 배포 URL: https://week05-webservice-1.onrender.com/
+- 배포 API: https://week05-webservice-1.onrender.com/api/trips
+
+화면을 구현하지 않은 REST API 프로젝트이므로 루트 경로 `/`의 404는 정상입니다. API 확인에는 `/api/trips`를 사용합니다.
 
 | 필드 | Java 타입 |
 |---|---|
@@ -78,14 +81,14 @@ IntelliJ에서 `build.gradle`을 열고 Gradle 동기화 후 `TripManagerApplica
 
 | 항목 | 내용 |
 |---|---|
-| IDE | IntelliJ IDEA — 에디션·버전 확인 후 추가 |
-| JDK | toolchain 17, 터미널 OpenJDK 17.0.18 — IntelliJ 실행 JDK 확인 필요 |
+| IDE | IntelliJ IDEA 2026.2.3, Ultimate 제품 코드 IU, 빌드 262.10968.63 |
+| JDK | IntelliJ 프로젝트 SDK: Homebrew OpenJDK 17.0.17 (`homebrew-17`). Gradle toolchain: 17. 터미널 빌드·JAR 검증: OpenJDK 17.0.18 |
 | Spring Boot | 4.1.1 |
 | Build Tool | Gradle Wrapper 9.7.1 |
 | 데이터 저장 | LinkedHashMap<Long, Trip> |
-| 배포 환경 | 수업에서 사용한 Render로 배포 예정 |
+| 배포 환경 | Render Docker Web Service — https://week05-webservice-1.onrender.com/ |
 
-프로젝트 생성 시 선택한 Dependency를 유지했습니다.
+프로젝트 생성 시 선택한 Dependency를 유지했습니다. 현재 REST API에 필요한 것은 Web MVC와 테스트 관련 Dependency입니다. WebClient, WebFlux, Web Services와 각각의 테스트 Dependency는 생성 시 함께 선택했지만 현재 코드에서는 직접 사용하지 않으며, 이번 과제 기능에 필수는 아닙니다.
 
 | Dependency | 역할과 사용 이유 |
 |---|---|
@@ -158,7 +161,48 @@ Render 배포를 위해 최상위에 `Dockerfile`과 `.dockerignore`를 추가�
 
 Render에서 package.json을 찾는 오류가 발생해 Docker 실행 환경을 선택했습니다. 배포 설정은 Branch `main`, Root Directory 빈 값, Dockerfile Path `./Dockerfile`입니다. Docker가 로컬에서 실행 중이지 않아 컨테이너 빌드는 아직 확인하지 못했습니다.
 
-배포 URL과 외부 GET·POST·필터링 결과는 실제 배포 후 추가합니다.
+빌드 및 배포 순서는 다음과 같습니다.
+
+1. `./gradlew test bootJar`로 테스트와 실행 JAR 빌드를 확인했습니다. 검토 시 `--rerun-tasks`를 추가해 재실행한 결과도 `BUILD SUCCESSFUL`이었으며, 기본 테스트 1개의 실패·오류는 0개였습니다.
+2. Java 17 빌드 단계와 JRE 실행 단계를 사용하는 `Dockerfile`, 빌드 컨텍스트에서 불필요한 파일을 제외하는 `.dockerignore`, Render의 `PORT`를 읽는 `application.properties` 설정을 준비했습니다.
+3. 배포 설정과 README를 포함한 main 커밋 `432f6f4`가 개인 저장소와 Organization 저장소 양쪽에 올라간 것을 확인했습니다. 이 시점의 작업 커밋은 10개입니다.
+4. Render에서 Docker 실행 환경으로 배포했습니다. 설정은 Branch `main`, Root Directory 빈 값, Dockerfile Path `./Dockerfile`입니다. 실제 배포 주소는 https://week05-webservice-1.onrender.com/ 입니다.
+5. 2026-10-03에 AI 도구가 curl로 외부 URL에서 GET·POST, 입력 검증과 목적지 필터링을 테스트했습니다. 11건의 요청이 예상 상태와 일치했습니다. 임시 여행만 삭제하고 테스트 전후 기존 여행 목록이 같음을 확인했습니다.
+
+| 외부 URL 테스트 | 예상 결과 | 실제 결과 |
+|---|---|---|
+| GET /api/trips | 저장된 여행 목록 조회 | 200, 기존 ID 1 여행 반환 |
+| POST /api/trips — 정상 여행 JSON | ID 자동 생성과 등록 | 201, ID 2와 입력한 6개 필드 반환 |
+| GET /api/trips — 등록 후 | 등록한 여행 포함 | 200, 기존 ID 1과 테스트 ID 2 반환 |
+| GET /api/trips?destination=DEPLOY_AUDIT_20261003_220421_JEJU | 테스트 목적지 여행만 반환 | 200, ID 2만 반환 |
+| GET /api/trips?destination=DEPLOY_AUDIT_20261003_220421_NONE | 일치하는 여행 없음 | 200, `[]` |
+| POST /api/trips — budget -100 | 잘못된 등록 거절 | 400 Bad Request |
+| PUT /api/trips/2 — budget -100 | 잘못된 수정 거절 | 400, 후속 GET에서 기존 budget 300000 유지 |
+| DELETE /api/trips/2, 이후 GET /api/trips/2 | 삭제 후 조회 실패 | 204, 이후 404 Not Found |
+
+예를 들어 아래 요청은 목적지 필터 기능의 실제 배포 확인에 사용했습니다.
+
+```bash
+curl 'https://week05-webservice-1.onrender.com/api/trips?destination=DEPLOY_AUDIT_20261003_220421_JEJU'
+```
+
+실제 응답은 200이었고, 본문은 다음과 같았습니다.
+
+```json
+[
+  {
+    "id": 2,
+    "title": "배포 확인 여행",
+    "destination": "DEPLOY_AUDIT_20261003_220421_JEJU",
+    "startDate": "2026-11-01",
+    "endDate": "2026-11-03",
+    "budget": 300000,
+    "memo": "외부 URL 테스트용 임시 데이터"
+  }
+]
+```
+
+전체 외부 요청 URL, POST·PUT 요청 JSON, 실제 응답 본문은 [배포 테스트 기록](docs/deployment-test-results.md)에 정리했습니다. 이 결과는 해당 시점의 기록이며 테스트 ID 2는 삭제했습니다. 메모리 저장소이므로 서버 재시작 후 데이터와 ID 순서는 달라질 수 있습니다. Render 내부 빌드 로그는 이번 확인에 포함하지 않았고, 외부 API 동작으로 배포 서버의 실행을 확인했습니다.
 
 ## ⑦ Weekly Report
 
@@ -172,8 +216,8 @@ Render에서 package.json을 찾는 오류가 발생해 Docker 실행 환경을 
 
 **Code Review:** `TripService.update()`는 `findTrip(id)`로 존재 여부를 확인하고 `validate(request)`로 검증합니다. 성공하면 setter로 내용을 바꾸고 `repository.update()`의 결과를 `toResponse()`로 변환합니다. 검증을 setter보다 먼저 수행해 잘못된 값이 기존 객체에 반영되지 않도록 했습니다.
 
-**AI Usage:** 요청 흐름, DTO, 생성자 주입, LinkedHashMap, 수정·삭제 동작을 AI에 질문했습니다. 제안 코드를 IntelliJ에서 작성하고 Postman으로 확인했습니다. 수정 시 save() 사용 오류와 검증 호출 누락을 확인·수정했습니다. AI가 README를 작성하고 curl로 실제 응답을 기록했습니다.
+**AI Usage:** 요청 흐름, DTO, 생성자 주입, LinkedHashMap, 수정·삭제 동작을 AI에 질문했습니다. 제안 코드를 IntelliJ에서 작성하고 Postman으로 확인했습니다. 수정 시 save() 사용 오류와 검증 호출 누락을 확인·수정했습니다. AI가 README를 작성하고 curl로 실제 응답을 기록했습니다. 제출 기준 검토에서는 빌드와 테스트를 재실행하고 별도 로컬 서버에 HTTP 요청 47건을 보내 CRUD, 400·404, 필터링을 확인했습니다. 배포 URL 제공 후에는 AI가 외부 요청 11건의 실제 결과를 문서화했으며, Reflection과 건의사항을 포함한 최종 보고서 작성에도 활용했습니다.
 
-**Reflection:** 더 공부하고 싶은 내용은 본인의 생각으로 작성 예정입니다.
+**Reflection:** 메모리 저장소로 CRUD를 구현하면서 서버가 재시작되면 데이터가 사라진다는 한계를 이해했습니다. 다음에는 데이터베이스와 JPA를 사용해 Repository 구현을 바꾸고, Controller와 Service를 어느 정도 유지할 수 있는지 확인하고 싶습니다. 또한 현재 검증 메서드를 Bean Validation으로 표현하는 방법과, 수동으로 확인한 400·404 및 수정 시 ID 유지 동작을 자동 API 테스트로 검증하는 방법을 더 공부하고 싶습니다.
 
-**건의사항:** 본인의 의견으로 작성 예정입니다.
+**건의사항:** 배포 실습 자료에 Docker 실행 환경 선택, Root Directory, Dockerfile Path, PORT 설정을 한 번에 확인할 수 있는 예시가 있으면 좋겠습니다. 특히 화면이 없는 REST API는 루트 경로가 404여도 `/api/trips`에서 정상 응답할 수 있다는 점을 안내하면 배포 성공 여부를 판단하는 데 도움이 될 것 같습니다.
