@@ -1,4 +1,4 @@
-package service;
+package org.example.db.tripmanager.service;
 
 
 import org.springframework.stereotype.Service;
